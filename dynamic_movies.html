@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Cinema Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        header {
+            background-color: var(--surface);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            margin: 0;
+            font-weight: 800;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Loading / Error */
+        .status {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 3rem;
+            font-size: 1.2rem;
+        }
+
+        /* Movie Grid */
+        #movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .movie-card {
+            background-color: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .movie-img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background-color: #0f172a;
+        }
+
+        .movie-info {
+            padding: 1rem;
+        }
+
+        .movie-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0 0 0.5rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .movie-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Sessions View */
+        #sessions-view {
+            display: none;
+        }
+
+        .back-btn {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-family: inherit;
+            margin-bottom: 2rem;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover { background: var(--surface-hover); }
+
+        .session-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .session-header img {
+            width: 150px;
+            border-radius: 8px;
+        }
+
+        .day-group {
+            margin-bottom: 2rem;
+        }
+
+        .day-title {
+            font-size: 1.5rem;
+            border-bottom: 2px solid var(--surface);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-hover);
+        }
+
+        .theater-group {
+            margin-bottom: 1.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .theater-title {
+            font-size: 1.1rem;
+            margin: 0 0 1rem 0;
+            color: #e2e8f0;
+        }
+
+        .session-times {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .session-time {
+            background: var(--primary);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .session-time:hover {
+            background: var(--primary-hover);
+        }
+        .session-format {
+            font-size: 0.7em;
+            opacity: 0.8;
+            margin-left: 4px;
+        }
+
+        /* Seat Map */
+        .session-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .seat-map-container {
+            margin-top: 10px;
+            max-width: 300px;
+            overflow-x: auto;
+        }
+        .seat-map {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            background: #0f172a;
+            padding: 8px;
+            border-radius: 6px;
+        }
+        .seat-row {
+            display: flex;
+            gap: 2px;
+            justify-content: center;
+        }
+        .seat-btn {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            font-size: 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: transparent;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .seat-btn:hover {
+            transform: scale(1.2);
+            color: white;
+        }
+        .seat-available { background: #2ecc71; }
+        .seat-taken { background: #e74c3c; cursor: not-allowed; }
+        .seat-empty { background: transparent; cursor: default; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Cinemas Dynamic Hub</h1>
+    </header>
+
+    <div class="container">
+        <!-- Movies Grid View -->
+        <div id="movies-view">
+            <div id="status" class="status">Loading movies...</div>
+            <div id="movies-grid"></div>
+        </div>
+
+        <!-- Sessions View -->
+        <div id="sessions-view">
+            <button class="back-btn" onclick="showMovies()">&larr; Back to Movies</button>
+            <div id="session-header-container" class="session-header"></div>
+            <div id="sessions-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_MOVIES = "http://localhost:3000/movies";
+        const API_SESSIONS = "http://localhost:3000/sessions?id=";
+        
+        let moviesCache = [];
+
+        // Direct fetch to our local proxy
+        async function fetchWithFallback(url) {
+            const res = await fetch(url, { headers: { 'accept': 'application/json' }});
+            if (!res.ok) throw new Error("Fetch failed: " + res.status);
+            return await res.json();
+        }
+
+        async function init() {
+            try {
+                const data = await fetchWithFallback(API_MOVIES);
+                // Extract movies
+                moviesCache = data.data?.movieList?.items || data.data?.movies || [];
+                
+                if (moviesCache.length === 0) {
+                    document.getElementById('status').innerText = "No movies found.";
+                    return;
+                }
+
+                document.getElementById('status').style.display = 'none';
+                renderMovies(moviesCache);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').innerText = "Failed to load movies. Open dev tools for details.";
+            }
+        }
+
+        function renderMovies(movies) {
+            const grid = document.getElementById('movies-grid');
+            grid.innerHTML = '';
+
+            movies.forEach(movie => {
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                
+                // Construct image URL properly
+                let imgUrl = movie.portraitimages?.path || '';
+                if (imgUrl && imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+                
+                card.innerHTML = `
+                    <img class="movie-img" src="${imgUrl}" alt="${movie.title}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxZTI5M2IiLz48L3N2Zz4='">
+                    <div class="movie-info">
+                        <h3 class="movie-title">${movie.title}</h3>
+                        <div class="movie-meta">${movie.classification} • ${movie.genre}</div>
+                    </div>
+                `;
+                
+                card.onclick = () => loadSessions(movie);
+                grid.appendChild(card);
+            });
+        }
+
+        async function loadSessions(movie) {
+            document.getElementById('movies-view').style.display = 'none';
+            document.getElementById('sessions-view').style.display = 'block';
+            document.getElementById('sessions-content').innerHTML = '<div class="status">Loading sessions...</div>';
+            
+            // Header
+            let imgUrl = movie.portraitimages?.path || '';
+            if (imgUrl && imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+            
+            document.getElementById('session-header-container').innerHTML = `
+                <img src="${imgUrl}" alt="">
+                <div>
+                    <h2>${movie.title}</h2>
+                    <p style="color:var(--text-muted)">${movie.synopsis?.plaintext || ''}</p>
+                </div>
+            `;
+
+            try {
+                // aggregateformatnumber is often used as aggregateMovieId
+                const movieId = movie.aggregateformatnumber || movie.uuid;
+                const data = await fetchWithFallback(API_SESSIONS + movieId);
+                renderSessions(data);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('sessions-content').innerHTML = '<div class="status">Failed to load sessions.</div>';
+            }
+        }
+
+        function renderSessions(data) {
+            const container = document.getElementById('sessions-content');
+            container.innerHTML = '';
+
+            if (!data.days || data.days.length === 0) {
+                container.innerHTML = '<div class="status">No sessions available for this movie.</div>';
+                return;
+            }
+
+            let foundColomboSessions = false;
+
+            data.days.forEach(day => {
+                // Pre-filter to only show Colombo
+                const colomboTheaters = day.theaters ? day.theaters.filter(t => t.name === 'Cinemas NOS Colombo') : [];
+                
+                // If there are no sessions in Colombo for this day, skip it
+                if (colomboTheaters.length === 0) return;
+                
+                foundColomboSessions = true;
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day-group';
+                
+                const dayTitle = document.createElement('h3');
+                dayTitle.className = 'day-title';
+                dayTitle.innerText = day.name;
+                dayDiv.appendChild(dayTitle);
+
+                colomboTheaters.forEach(theater => {
+                    if (!theater.sessions || theater.sessions.length === 0) return;
+                    
+                    const tDiv = document.createElement('div');
+                    tDiv.className = 'theater-group';
+                    
+                    tDiv.innerHTML = `<h4 class="theater-title">${theater.name}</h4>`;
+                    
+                    const tTimes = document.createElement('div');
+                    tTimes.className = 'session-times';
+
+                    theater.sessions.forEach(session => {
+                        const sessionBlock = document.createElement('div');
+                        sessionBlock.className = 'session-block';
+                        
+                        const a = document.createElement('div');
+                        a.className = 'session-time';
+                        a.title = session.description + " (" + session.format + ")";
+                        a.innerHTML = `${session.time} <span class="session-format">${session.format.toUpperCase()}</span>`;
+                        
+                        const mapContainer = document.createElement('div');
+                        mapContainer.id = 'seatmap-' + session.uuid;
+                        mapContainer.className = 'seat-map-container';
+                        mapContainer.innerHTML = '<div style="font-size:0.75rem; color:#94a3b8; text-align:center;">Loading seats...</div>';
+                        
+                        sessionBlock.appendChild(a);
+                        sessionBlock.appendChild(mapContainer);
+                        tTimes.appendChild(sessionBlock);
+                        
+                        // Fire off fetch asynchronously
+                        fetchSeatMap(session.uuid);
+                    });
+
+                    tDiv.appendChild(tTimes);
+                    dayDiv.appendChild(tDiv);
+                });
+
+                container.appendChild(dayDiv);
+            });
+
+            if (!foundColomboSessions) {
+                container.innerHTML = '<div class="status">No sessions available for this movie at Cinemas NOS Colombo.</div>';
+            }
+        }
+
+        async function fetchSeatMap(sessionUuid) {
+            try {
+                const res = await fetch('http://localhost:3000/seats?sessionUuid=' + sessionUuid);
+                if (!res.ok) throw new Error("Seat fetch failed");
+                const queues = await res.json();
+                renderSeatMap(sessionUuid, queues);
+            } catch (err) {
+                console.error(err);
+                const container = document.getElementById('seatmap-' + sessionUuid);
+                if (container) container.innerHTML = '<div style="font-size:0.75rem; color:#e74c3c; text-align:center;">Failed to load</div>';
+            }
+        }
+
+        function renderSeatMap(sessionUuid, queues) {
+            const container = document.getElementById('seatmap-' + sessionUuid);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (!queues || queues.length === 0) {
+                container.innerHTML = '<div style="font-size:0.75rem; color:#94a3b8; text-align:center;">No seat data</div>';
+                return;
+            }
+
+            const mapDiv = document.createElement('div');
+            mapDiv.className = 'seat-map';
+
+            queues.forEach(q => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'seat-row';
+                
+                const localSeats = q.LocalSeats?.List || [];
+                localSeats.forEach(seat => {
+                    const seatDiv = document.createElement('div');
+                    seatDiv.className = 'seat-btn';
+                    
+                    if (!seat.isSeat) {
+                        seatDiv.classList.add('seat-empty');
+                    } else if (seat.isAvailable) {
+                        seatDiv.classList.add('seat-available');
+                        seatDiv.title = seat.Queue + seat.SeatNumber;
+                        seatDiv.innerText = seat.Queue + seat.SeatNumber;
+                    } else {
+                        seatDiv.classList.add('seat-taken');
+                        seatDiv.title = seat.Queue + seat.SeatNumber + " (Taken)";
+                    }
+                    
+                    rowDiv.appendChild(seatDiv);
+                });
+                mapDiv.appendChild(rowDiv);
+            });
+            container.appendChild(mapDiv);
+        }
+
+        function showMovies() {
+            document.getElementById('movies-view').style.display = 'block';
+            document.getElementById('sessions-view').style.display = 'none';
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
